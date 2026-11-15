@@ -58,18 +58,27 @@ namespace RussiaFlag
             store = new PocketStore(lake ? "lake" : "office", root);
             Text = lake ? "Рыболовный ящик — файлы" : "Тайник в столе — файлы";
             Font = new Font("Segoe UI", 10);
-            ClientSize = new Size(640, 350); FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            ClientSize = new Size(720, 390); FormBorderStyle = FormBorderStyle.SizableToolWindow;
             ShowInTaskbar = false; StartPosition = FormStartPosition.Manual; MinimumSize = new Size(450, 290);
             Rectangle area = Screen.FromPoint(anchor).WorkingArea;
             Location = new Point(Math.Max(area.Left, Math.Min(anchor.X, area.Right - Width)), Math.Max(area.Top, Math.Min(anchor.Y - Height, area.Bottom - Height)));
             BackColor = lake ? Color.FromArgb(38, 49, 36) : Color.FromArgb(52, 35, 26); ForeColor = Color.FromArgb(244, 234, 210);
             Label heading = new Label { Text = lake ? "РЫБОЛОВНЫЙ ЯЩИК" : "ТАЙНИК В СТОЛЕ", Font = new Font("Segoe UI Semibold", 12), Dock = DockStyle.Top, Height = 40, Padding = new Padding(12, 9, 0, 0) };
             Label hint = new Label { Text = "Перетащите сюда — переместить. ПКМ — вернуть на прежнее место.", Dock = DockStyle.Top, Height = 32, Padding = new Padding(12, 4, 0, 0) };
-            FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 45, Padding = new Padding(7), WrapContents = false };
-            Button add = new Button { Text = "Переместить файлы", AutoSize = true }, folder = new Button { Text = "Папку", AutoSize = true }, remove = new Button { Text = "Вернуть на место", AutoSize = true }, open = new Button { Text = "Открыть", AutoSize = true };
-            foreach (Button button in new Button[] { add, folder, remove, open }) { button.ForeColor = Color.Black; buttons.Controls.Add(button); }
+            FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 72, Padding = new Padding(12), WrapContents = true, BackColor = Color.FromArgb(245, 245, 247) };
+            Button add = new PocketButton("Переместить файлы"), folder = new PocketButton("Переместить папку"), remove = new PocketButton("Вернуть на место"), open = new PocketButton("Открыть", true);
+            foreach (Button button in new Button[] { add, folder, remove, open }) buttons.Controls.Add(button);
+            buttons.Resize += delegate
+            {
+                int columns = buttons.ClientSize.Width >= 680 ? 4 : 2;
+                buttons.Height = columns == 4 ? 72 : 120;
+                foreach (Control button in buttons.Controls) button.Width = Math.Max(140, (buttons.ClientSize.Width - 24) / columns - 8);
+            };
+            list = new ListView { Dock = DockStyle.Fill, View = View.LargeIcon, MultiSelect = false, HideSelection = false, BackColor = Color.FromArgb(246, 240, 223), ForeColor = Color.FromArgb(40, 36, 28), AllowDrop = true };
+            remove.Enabled = open.Enabled = false;
+            list.SelectedIndexChanged += delegate { remove.Enabled = open.Enabled = list.SelectedItems.Count > 0; };
             icons = new ImageList { ImageSize = new Size(32, 32), ColorDepth = ColorDepth.Depth32Bit };
-            list = new ListView { Dock = DockStyle.Fill, View = View.LargeIcon, LargeImageList = icons, MultiSelect = false, HideSelection = false, BackColor = Color.FromArgb(246, 240, 223), ForeColor = Color.FromArgb(40, 36, 28), AllowDrop = true };
+            list.LargeImageList = icons;
             empty = new Label { Text = "Здесь пока пусто.\nПеретащите файлы с рабочего стола в ящик.\nДля возврата: ПКМ → Вернуть на прежнее место.", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(92, 80, 63), BackColor = list.BackColor, AllowDrop = true };
             Controls.Add(list); Controls.Add(hint); Controls.Add(heading); Controls.Add(buttons);
             list.Controls.Add(empty);
@@ -110,7 +119,18 @@ namespace RussiaFlag
         private void RestoreSelected()
         {
             if (list.SelectedItems.Count == 0) return;
-            try { store.Restore((PocketEntry)list.SelectedItems[0].Tag); }
+            PocketEntry entry = (PocketEntry)list.SelectedItems[0].Tag;
+            try
+            {
+                try { store.Restore(entry); }
+                catch (UnauthorizedAccessException)
+                {
+                    string zone = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(entry.Stored)));
+                    Enabled = false;
+                    try { PocketElevation.Request(zone, PocketElevation.Token(entry)); }
+                    finally { Enabled = true; store.Refresh(); Activate(); }
+                }
+            }
             catch (Exception error) { MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
             finally { Reload(); }
         }

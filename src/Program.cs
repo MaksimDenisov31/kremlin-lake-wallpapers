@@ -30,6 +30,21 @@ namespace RussiaFlag
             try
             {
                 string mode = args.Length > 0 ? args[0] : "";
+                if (mode == "--restore-pocket")
+                {
+                    try
+                    {
+                        if (args.Length != 3) throw new ArgumentException("Не указан файл для возврата.");
+                        PocketElevation.Execute(args[1], args[2]);
+                        return 0;
+                    }
+                    catch (Exception error)
+                    {
+                        Log(error);
+                        MessageBox.Show(error.Message, "Возврат файла из ящика", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return 1;
+                    }
+                }
                 if (mode == "--stop-soviet") return StopSovietRoom();
                 if (mode == "--stop")
                 {

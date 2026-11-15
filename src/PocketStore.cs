@@ -80,7 +80,14 @@ namespace RussiaFlag
             try { Save(); }
             catch { Items.Add(entry); throw; }
             string folder = Path.GetDirectoryName(entry.Stored);
-            if (Directory.Exists(folder) && Directory.GetFileSystemEntries(folder).Length == 0) Directory.Delete(folder);
+            try { if (Directory.Exists(folder) && Directory.GetFileSystemEntries(folder).Length == 0) Directory.Delete(folder); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+        internal void Refresh()
+        {
+            PocketStore refreshed = new PocketStore(zone, projectRoot);
+            Items.Clear(); Items.AddRange(refreshed.Items);
         }
         private static void Move(string source, string destination)
         {

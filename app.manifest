@@ -5,8 +5,8 @@
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" />
     </dependentAssembly>
   </dependency>
-  <assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="SovietRoom.Desktop" type="win32" />
-  <description>Soviet Room interactive desktop</description>
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="RussiaFlag.Desktop" type="win32" />
+  <description>Kremlin and Lake Desktop Wallpapers</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false" /></requestedPrivileges></security>
   </trustInfo>

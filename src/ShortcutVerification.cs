@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.ComponentModel;
 using System.Windows.Forms;
 namespace RussiaFlag
 {
@@ -55,6 +56,22 @@ namespace RussiaFlag
             File.WriteAllText(cross, content); storage.Import(new string[] { cross }); entry = storage.Items[0];
             Check(!File.Exists(cross) && File.ReadAllText(entry.Stored) == content, "cross-volume move");
             storage.Restore(entry); Check(File.ReadAllText(cross) == content, "cross-volume return"); File.Delete(cross);
+            PocketStore elevated = new PocketStore("office", project);
+            elevated.Import(new string[] { file }); PocketEntry elevatedEntry = elevated.Items[0];
+            bool cancelled = !PocketElevation.Request("office", PocketElevation.Token(elevatedEntry), delegate(System.Diagnostics.ProcessStartInfo info)
+            {
+                Check(info.Verb == "runas" && info.UseShellExecute && info.Arguments.StartsWith("--restore-pocket office "), "UAC requests only restore helper");
+                throw new Win32Exception(1223);
+            });
+            Check(cancelled && File.Exists(elevatedEntry.Stored) && !File.Exists(file), "UAC cancellation preserves stored file");
+            bool invalidToken = false;
+            try { PocketElevation.Execute("office", "../invalid", project); } catch (ArgumentException) { invalidToken = true; }
+            Check(invalidToken && File.Exists(elevatedEntry.Stored), "helper rejects invalid item identifier");
+            Check(PocketElevation.Request("office", PocketElevation.Token(elevatedEntry), delegate(System.Diagnostics.ProcessStartInfo info)
+            {
+                PocketElevation.Execute("office", PocketElevation.Token(elevatedEntry), project); return 0;
+            }), "restore helper completes");
+            elevated.Refresh(); Check(elevated.Items.Count == 0 && File.ReadAllText(file) == content, "UI reload sees helper restore");
             foreach (bool lake in new bool[] { true, false })
             {
                 string zone = lake ? "lake" : "office";
@@ -68,6 +85,25 @@ namespace RussiaFlag
                     Check(list.LargeImageList.Handle != IntPtr.Zero, "lazy icon creation before Show");
                     using (Bitmap image = new Bitmap(list.LargeImageList.Images[0])) Check(image.Width == 32, "icon readable");
                     pocket.Show(); Application.DoEvents();
+                    if (cycle == 0)
+                    {
+                        using (Bitmap preview = new Bitmap(pocket.Width, pocket.Height))
+                        {
+                            pocket.DrawToBitmap(preview, new Rectangle(Point.Empty, preview.Size));
+                            preview.Save(Path.Combine(root, lake ? "lake-buttons.png" : "office-buttons.png"));
+                        }
+                        foreach (int width in new int[] { 450, 720 })
+                        {
+                            pocket.ClientSize = new Size(width, 390); Application.DoEvents();
+                            foreach (Control panel in pocket.Controls)
+                                foreach (Control control in panel.Controls)
+                                    if (control is PocketButton)
+                                    {
+                                        Check(control.Left >= 0 && control.Right <= panel.ClientSize.Width && control.Bottom <= panel.ClientSize.Height, "button visible after resizing");
+                                        Check(TextRenderer.MeasureText(control.Text, control.Font).Width <= control.Width - 16, "button label fits");
+                                    }
+                        }
+                    }
                     Drop(list, folder, ((PocketEntry)list.Items[0].Tag).Stored);
                     Check(list.Items.Count == 2 && !Directory.Exists(folder), "drop moves folder");
                     list.EnsureVisible(1); Application.DoEvents();
@@ -87,7 +123,7 @@ namespace RussiaFlag
                 Check(reopened.Items.Count == 1 && !File.Exists(file), "file persists after window closure");
                 reopened.Restore(reopened.Items[0]); Check(File.ReadAllText(file) == content, "PDF returned intact");
             }
-            File.WriteAllText("shortcut-verification.txt", "PASS: actual moves and returns, cross-volume files, overwrite refusal, same-name isolation, interrupted return, legacy migration, folder contents, 8 UI reopen cycles, lazy icons, drag/drop MOVE and right-click return in both pockets.\r\n");
+            File.WriteAllText("shortcut-verification.txt", "PASS: actual moves and returns, cross-volume files, overwrite refusal, same-name isolation, interrupted return, legacy migration, folder contents, 8 UI reopen cycles, lazy icons, drag/drop MOVE and right-click return in both pockets.\r\nPASS: UAC helper launch configuration, cancellation without file changes, identifier validation, helper restore and UI refresh; readable rounded button labels at narrow and wide sizes. UAC consent itself requires an interactive user.\r\n");
             return 0;
         }
     }
