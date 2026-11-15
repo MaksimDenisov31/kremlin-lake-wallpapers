@@ -1,0 +1,9 @@
+{
+  "source": "https://s.muzrecord.com/files/shaman-ya-russkiy.mp3",
+  "source_start_seconds": 44.5,
+  "source_end_seconds": 78.25,
+  "clip_duration_ms": 33750,
+  "fade_in_ms": 15,
+  "fade_out_ms": 300,
+  "method": "Local speech timing plus sample-accurate audio trim; 320 kbps MP3"
+}

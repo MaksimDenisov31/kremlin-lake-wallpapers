@@ -1,0 +1,6 @@
+Forest ambience by Gravity Sound.
+Source: https://commons.wikimedia.org/wiki/File:Forest_ambience_(Gravity_Sound).wav
+Author: Gravity Sound, https://www.gravitysound.studio/
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+Changes: transcoded WAV to MP3 at 192 kbps for local playback. Played quietly in a loop when the user enables nature sounds.

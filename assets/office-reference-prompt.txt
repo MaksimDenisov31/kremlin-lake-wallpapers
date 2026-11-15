@@ -1,0 +1,2 @@
+Tool: built-in image_gen.imagegen; edit of user-provided reference photograph; transparent background: false.
+undefined

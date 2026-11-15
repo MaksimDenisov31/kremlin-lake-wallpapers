@@ -1,0 +1,40 @@
+# Local tools, downloaded models and old project snapshots
+/.tools/
+/archive/
+
+# User preferences, shortcut paths and test preferences
+/settings.ini
+/settings-before-*.ini
+/*-test-settings.ini
+/shortcuts-*.txt
+/assets/desk-screen-picture.*
+/assets/shaman-track.*
+
+# Runtime logs, verification reports and temporary files
+/*.log
+/last-run.txt
+/verification.txt
+/*-verification.txt
+/desktop-diagnostics.txt
+*.tmp
+*.pdb
+
+# Rendered previews and diagnostic crops
+/preview*.png
+/curtain-*-source.png
+/monitor-*-source.png
+/detail-*.png
+/perspective-detail-*.png
+/tray-icon-preview.png
+
+# Source-discovery scratch files and transcription work files
+/assets/search-*
+/assets/office-source-?.jpg
+/assets/shaman-timing.json
+/assets/shaman-clip-check.json
+
+# Editor/OS metadata
+/.vs/
+/.vscode/
+Thumbs.db
+Desktop.ini
