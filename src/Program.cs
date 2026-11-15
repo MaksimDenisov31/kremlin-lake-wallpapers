@@ -39,6 +39,8 @@ namespace RussiaFlag
                 }
                 NativeDesktop.EnableDpi();
                 Application.EnableVisualStyles();
+                if (mode == "--shortcut-test") return ShortcutVerification.Run();
+                if (mode == "--startup-test") return StartupVerification.Run();
                 if (mode == "--interaction-test") return InteractionVerification.Run();
                 if (mode == "--music-test")
                 {
@@ -105,13 +107,14 @@ namespace RussiaFlag
                 return 1;
             }
         }
-        private static int StopSovietRoom()
+        internal static int StopSovietRoom(string eventName = "Local\\SovietRoom.Desktop.Restore", string mutexName = "Local\\SovietRoom.Desktop.Instance")
         {
-            // Same graceful shutdown signal used by SovietRoom.exe --stop in all editions.
-            try { using (EventWaitHandle signal = EventWaitHandle.OpenExisting("Local\\SovietRoom.Desktop.Restore")) signal.Set(); }
+            // No installation path or SovietRoom executable is required. Missing event means
+            // the room is absent or stopped, and the wallpaper launcher can continue normally.
+            try { using (EventWaitHandle signal = EventWaitHandle.OpenExisting(eventName)) signal.Set(); }
             catch (WaitHandleCannotBeOpenedException) { return 0; }
             Mutex instance;
-            if (!Mutex.TryOpenExisting("Local\\SovietRoom.Desktop.Instance", out instance)) return 0;
+            if (!Mutex.TryOpenExisting(mutexName, out instance)) return 0;
             using (instance)
             {
                 bool acquired = false;

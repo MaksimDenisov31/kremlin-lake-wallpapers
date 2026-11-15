@@ -122,13 +122,8 @@ namespace RussiaFlag
                 state.LakePocket = true; state.Nature = true; lake.Tick(.4); lake.Hotspots = true; lake.Save("preview-interactive-lake.png");
                 report.AppendLine("Water motion, unchanged person, pause and fishing-box rendering: PASS");
             }
-            string root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".tools", "shortcut-verification");
-            Directory.CreateDirectory(root); string file = Path.Combine(root, "target.txt"); File.WriteAllText(file, "shortcut test");
-            ShortcutStore store = new ShortcutStore("test", root); store.Add(new string[] { file, root, file });
-            Check(store.Items.Count == 2, "Shortcut duplicates removed");
-            ShortcutStore reloaded = new ShortcutStore("test", root); Check(reloaded.Items.Count == 2, "Shortcuts persist");
-            reloaded.Remove(file); Check(File.Exists(file), "Removing shortcut preserves original file"); reloaded.Remove(root);
-            report.AppendLine("Shortcut add, duplicate handling, persistence, reference removal preserves original: PASS");
+            ShortcutVerification.Run();
+            report.AppendLine("Pocket moves, returns, conflict protection, legacy migration, persistence, icons and right-click menu: PASS");
             using (Form foreground = new Form { StartPosition = FormStartPosition.Manual, Location = new Point(100, 100), Size = new Size(200, 150), ShowInTaskbar = false })
             {
                 foreground.Show(); Application.DoEvents(); Check(!DesktopInput.IsDesktopPoint(new Point(150, 150)), "Foreground app input not intercepted"); foreground.Close();

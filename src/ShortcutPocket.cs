@@ -47,70 +47,115 @@ namespace RussiaFlag
     }
     internal sealed class ShortcutPocket : Form
     {
-        private readonly ShortcutStore store;
+        private readonly PocketStore store;
         private readonly ListView list;
         private readonly ImageList icons;
+        private readonly List<Icon> iconSources = new List<Icon>();
         private readonly Label empty;
+        private readonly ContextMenuStrip fileMenu;
         internal ShortcutPocket(bool lake, Point anchor, string root = null)
         {
-            store = new ShortcutStore(lake ? "lake" : "office", root);
-            Text = lake ? "Рыболовный ящик — ярлыки" : "Тайник в столе — ярлыки";
+            store = new PocketStore(lake ? "lake" : "office", root);
+            Text = lake ? "Рыболовный ящик — файлы" : "Тайник в столе — файлы";
             Font = new Font("Segoe UI", 10);
-            ClientSize = new Size(520, 350); FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            ClientSize = new Size(640, 350); FormBorderStyle = FormBorderStyle.SizableToolWindow;
             ShowInTaskbar = false; StartPosition = FormStartPosition.Manual; MinimumSize = new Size(450, 290);
             Rectangle area = Screen.FromPoint(anchor).WorkingArea;
             Location = new Point(Math.Max(area.Left, Math.Min(anchor.X, area.Right - Width)), Math.Max(area.Top, Math.Min(anchor.Y - Height, area.Bottom - Height)));
             BackColor = lake ? Color.FromArgb(38, 49, 36) : Color.FromArgb(52, 35, 26); ForeColor = Color.FromArgb(244, 234, 210);
             Label heading = new Label { Text = lake ? "РЫБОЛОВНЫЙ ЯЩИК" : "ТАЙНИК В СТОЛЕ", Font = new Font("Segoe UI Semibold", 12), Dock = DockStyle.Top, Height = 40, Padding = new Padding(12, 9, 0, 0) };
-            Label hint = new Label { Text = "Перетащите файлы сюда. Двойной щелчок — открыть.", Dock = DockStyle.Top, Height = 32, Padding = new Padding(12, 4, 0, 0) };
+            Label hint = new Label { Text = "Перетащите сюда — переместить. ПКМ — вернуть на прежнее место.", Dock = DockStyle.Top, Height = 32, Padding = new Padding(12, 4, 0, 0) };
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 45, Padding = new Padding(7), WrapContents = false };
-            Button add = new Button { Text = "Добавить файлы", AutoSize = true }, folder = new Button { Text = "Папку", AutoSize = true }, remove = new Button { Text = "Убрать ссылку", AutoSize = true }, open = new Button { Text = "Открыть", AutoSize = true };
+            Button add = new Button { Text = "Переместить файлы", AutoSize = true }, folder = new Button { Text = "Папку", AutoSize = true }, remove = new Button { Text = "Вернуть на место", AutoSize = true }, open = new Button { Text = "Открыть", AutoSize = true };
             foreach (Button button in new Button[] { add, folder, remove, open }) { button.ForeColor = Color.Black; buttons.Controls.Add(button); }
             icons = new ImageList { ImageSize = new Size(32, 32), ColorDepth = ColorDepth.Depth32Bit };
             list = new ListView { Dock = DockStyle.Fill, View = View.LargeIcon, LargeImageList = icons, MultiSelect = false, HideSelection = false, BackColor = Color.FromArgb(246, 240, 223), ForeColor = Color.FromArgb(40, 36, 28), AllowDrop = true };
-            empty = new Label { Text = "Здесь пока пусто.\nДобавьте файлы, папки или ярлыки.\nИсходные файлы останутся на месте.", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(92, 80, 63), BackColor = list.BackColor, AllowDrop = true };
+            empty = new Label { Text = "Здесь пока пусто.\nПеретащите файлы с рабочего стола в ящик.\nДля возврата: ПКМ → Вернуть на прежнее место.", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(92, 80, 63), BackColor = list.BackColor, AllowDrop = true };
             Controls.Add(list); Controls.Add(hint); Controls.Add(heading); Controls.Add(buttons);
             list.Controls.Add(empty);
-            add.Click += delegate { using (OpenFileDialog picker = new OpenFileDialog { Multiselect = true, Title = "Добавить ссылки в ящик", CheckFileExists = true }) if (picker.ShowDialog(this) == DialogResult.OK) Import(picker.FileNames); };
+            add.Click += delegate { using (OpenFileDialog picker = new OpenFileDialog { Multiselect = true, Title = "Переместить файлы в ящик", CheckFileExists = true }) if (picker.ShowDialog(this) == DialogResult.OK) Import(picker.FileNames); };
             folder.Click += delegate { using (FolderBrowserDialog picker = new FolderBrowserDialog { Description = "Выберите папку" }) if (picker.ShowDialog(this) == DialogResult.OK) Import(new string[] { picker.SelectedPath }); };
-            remove.Click += delegate { if (list.SelectedItems.Count > 0) { store.Remove((string)list.SelectedItems[0].Tag); Reload(); } };
+            remove.Click += delegate { RestoreSelected(); };
             open.Click += delegate { Launch(); }; list.DoubleClick += delegate { Launch(); };
+            fileMenu = new ContextMenuStrip();
+            fileMenu.Items.Add("Открыть", null, delegate { Launch(); });
+            fileMenu.Items.Add("Вернуть на прежнее место", null, delegate { RestoreSelected(); });
+            fileMenu.Opening += delegate(object sender, System.ComponentModel.CancelEventArgs args) { args.Cancel = list.SelectedItems.Count == 0; };
+            list.ContextMenuStrip = fileMenu;
+            list.MouseDown += delegate(object sender, MouseEventArgs args)
+            {
+                if (args.Button != MouseButtons.Right) return;
+                ListViewItem hit = list.HitTest(args.Location).Item;
+                list.SelectedItems.Clear();
+                if (hit != null) { hit.Selected = true; hit.Focused = true; }
+            };
             list.KeyDown += delegate(object sender, KeyEventArgs args) { if (args.KeyCode == Keys.Enter) Launch(); };
-            DragEventHandler drag = delegate(object sender, DragEventArgs args) { args.Effect = args.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; };
+            DragEventHandler drag = delegate(object sender, DragEventArgs args) { args.Effect = args.Data.GetDataPresent(DataFormats.FileDrop) && (args.AllowedEffect & DragDropEffects.Move) != 0 ? DragDropEffects.Move : DragDropEffects.None; };
             DragEventHandler drop = delegate(object sender, DragEventArgs args) { string[] paths = args.Data.GetData(DataFormats.FileDrop) as string[]; if (paths != null) Import(paths); };
             list.DragEnter += drag; list.DragDrop += drop; empty.DragEnter += drag; empty.DragDrop += drop;
             Reload();
+            Shown += delegate
+            {
+                try { store.MigrateLegacy(); }
+                catch (Exception error) { MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+                finally { Reload(); }
+            };
         }
         private void Import(string[] paths)
         {
-            try { store.Add(paths); Reload(); }
+            try { store.Import(paths); }
             catch (Exception error) { MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            finally { Reload(); }
+        }
+        private void RestoreSelected()
+        {
+            if (list.SelectedItems.Count == 0) return;
+            try { store.Restore((PocketEntry)list.SelectedItems[0].Tag); }
+            catch (Exception error) { MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            finally { Reload(); }
         }
         private void Reload()
         {
             list.Items.Clear(); icons.Images.Clear();
-            foreach (string path in store.Items)
+            ReleaseIconSources();
+            foreach (PocketEntry entry in store.Items)
             {
+                string path = entry.Current;
                 string key = icons.Images.Count.ToString();
                 Icon icon = null;
                 try { if (File.Exists(path)) icon = Icon.ExtractAssociatedIcon(path); } catch { }
-                icons.Images.Add(key, icon ?? SystemIcons.Application);
-                if (icon != null) icon.Dispose();
-                list.Items.Add(new ListViewItem(Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)), key) { Tag = path, ToolTipText = path });
+                // ImageList can defer reading the Icon until its native handle is created.
+                // Keep each source alive through reloads and until the image list is disposed.
+                if (icon == null) icon = (Icon)SystemIcons.Application.Clone();
+                iconSources.Add(icon);
+                icons.Images.Add(key, icon);
+                list.Items.Add(new ListViewItem(Path.GetFileName(entry.Original), key) { Tag = entry, ToolTipText = "Вернуть в: " + entry.Original });
             }
             list.ShowItemToolTips = true; empty.Visible = list.Items.Count == 0;
         }
         private void Launch()
         {
             if (list.SelectedItems.Count == 0) return;
-            string path = (string)list.SelectedItems[0].Tag;
+            string path = ((PocketEntry)list.SelectedItems[0].Tag).Current;
             try
             {
-                if (!File.Exists(path) && !Directory.Exists(path)) throw new FileNotFoundException("Файл был перемещён или удалён. Уберите ссылку и добавьте её заново.");
+                if (!File.Exists(path) && !Directory.Exists(path)) throw new FileNotFoundException("Файл не найден. Проверьте папку pocket-files рядом с обоями.");
                 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception error) { MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
-        protected override void Dispose(bool disposing) { if (disposing) icons.Dispose(); base.Dispose(disposing); }
+        private void ReleaseIconSources()
+        {
+            foreach (Icon icon in iconSources) icon.Dispose();
+            iconSources.Clear();
+        }
+        protected override void Dispose(bool disposing)
+        {
+            try { base.Dispose(disposing); }
+            finally
+            {
+                if (disposing) { icons.Dispose(); ReleaseIconSources(); fileMenu.Dispose(); }
+            }
+        }
     }
 }
