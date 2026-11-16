@@ -7,7 +7,7 @@ namespace RussiaFlag
 {
     internal sealed class Settings
     {
-        internal string Office = "original", Music = "shaman", ShamanPath = "";
+        internal string Office = "ai", Music = "shaman", ShamanPath = "";
         internal int StartMs, EndMs = 30000;
         internal bool FragmentReady, Swapped;
         internal string SingleScene = "office";
