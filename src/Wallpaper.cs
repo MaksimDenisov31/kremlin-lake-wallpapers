@@ -130,6 +130,11 @@ namespace RussiaFlag
             singleOfficeItem.Checked = settings.SingleScene == "office"; singleLakeItem.Checked = settings.SingleScene == "lake";
             bool single = SelectedScreens().Length == 1;
             singleSceneMenu.Visible = single; swapItem.Visible = !single;
+            bool officeVisible = canvases.Exists(delegate(SceneCanvas canvas) { return !canvas.IsLake; });
+            bool lakeVisible = canvases.Exists(delegate(SceneCanvas canvas) { return canvas.IsLake; });
+            foreach (string key in new string[] { "curtain", "lamp", "monitor", "office-pocket", "flag", "clock", "screen-picture" })
+                interactiveItems[key].Visible = officeVisible;
+            foreach (string key in new string[] { "lake-pocket", "nature" }) interactiveItems[key].Visible = lakeVisible;
         }
         private void Change(Action action)
         {
@@ -387,6 +392,15 @@ namespace RussiaFlag
             }
         }
         private static void Require(bool condition, string test) { if (!condition) throw new Exception(test); }
+        private void CheckInteractiveVisibility(bool office, bool lake)
+        {
+            foreach (string key in new string[] { "curtain", "lamp", "monitor", "office-pocket", "flag", "clock", "screen-picture" })
+                Require(interactiveItems[key].Available == office, "Office control visibility: " + key);
+            foreach (string key in new string[] { "lake-pocket", "nature" })
+                Require(interactiveItems[key].Available == lake, "Lake control visibility: " + key);
+            foreach (string key in new string[] { "pause", "help", "mute-all" })
+                Require(interactiveItems[key].Available, "Shared control remains available: " + key);
+        }
         internal void RunSingleMonitorChecks()
         {
             StringBuilder report = new StringBuilder();
@@ -394,19 +408,32 @@ namespace RussiaFlag
             {
                 Require(canvases.Count == 1 && !canvases[0].IsLake, "Single screen starts with Kremlin");
                 Require(singleSceneMenu.Available && !swapItem.Available, "Single-monitor menu replaces swap");
+                CheckInteractiveVisibility(true, false);
+                ClickCheck(interactiveItems["lamp"]); Require(sceneState.Lamp, "Visible office lamp works");
+                ClickCheck(interactiveItems["lamp"]); Require(!sceneState.Lamp, "Visible office lamp switches off");
                 ClickCheck(singleLakeItem); Require(canvases.Count == 1 && canvases[0].IsLake && singleLakeItem.Checked, "Single screen switches to lake");
+                CheckInteractiveVisibility(false, true);
+                ClickCheck(interactiveItems["nature"]); Require(sceneState.Nature && nature.Status() == "playing", "Visible lake nature control works");
+                ClickCheck(interactiveItems["nature"]); Require(!sceneState.Nature && nature.Status() == "closed", "Visible lake nature switches off");
                 Require(Settings.LoadFrom(settings.PersistPath).SingleScene == "lake", "Single scene preference persists");
                 ClickCheck(singleOfficeItem); Require(!canvases[0].IsLake && singleOfficeItem.Checked, "Single screen switches to Kremlin");
+                CheckInteractiveVisibility(true, false);
                 ClickCheck(singleLakeItem);
+                CheckInteractiveVisibility(false, true);
                 report.AppendLine("One screen: Kremlin / lake menu switches full-screen scene and persists choice: PASS");
+                report.AppendLine("One screen: only active-scene interactive controls shown; lamp and nature controls clicked; shared controls retained: PASS");
                 if (Screen.AllScreens.Length > 1)
                 {
                     forceSingleScreen = false; Rebuild();
                     Require(canvases.Count == 2 && !singleSceneMenu.Available && swapItem.Available, "Two screens show swap menu");
+                    CheckInteractiveVisibility(true, true);
                     ClickCheck(swapItem); Require(canvases[0].IsLake && !canvases[1].IsLake, "Two screens swap scenes");
+                    CheckInteractiveVisibility(true, true);
                     forceSingleScreen = true; Rebuild();
                     Require(canvases.Count == 1 && canvases[0].IsLake && singleSceneMenu.Available && !swapItem.Available, "Returning to one screen restores saved lake, independently of swap");
+                    CheckInteractiveVisibility(false, true);
                     report.AppendLine("One -> two -> one screen: menu adapts, two-scene swap works, saved single scene restored: PASS");
+                    report.AppendLine("Interactive controls update on monitor changes; both scenes available with two screens, including after swap: PASS");
                 }
                 foreach (DesktopSurface surface in surfaces) Require(surface.IsAttached, "Single-screen scene stays attached");
                 MenuChecksPassed = true;
