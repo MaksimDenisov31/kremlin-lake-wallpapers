@@ -6,7 +6,7 @@
 
 ### Обычная установка
 
-1. [Скачайте KremlinLakeWallpapers-Setup-1.0.0.exe](https://github.com/MaksimDenisovRussia/kremlin-lake-wallpapers/releases/download/v1.0.0/KremlinLakeWallpapers-Setup-1.0.0.exe).
+1. [Скачайте KremlinLakeWallpapers-Setup-1.0.0.exe](https://github.com/MaksimDenisov31/kremlin-lake-wallpapers/releases/download/v1.0.0/KremlinLakeWallpapers-Setup-1.0.0.exe).
 2. Запустите установщик, выберите папку и при желании создайте ярлык на рабочем столе.
 3. Запускайте обои из меню «Пуск» или через созданный ярлык. В меню «Пуск» также есть команда остановки обоев.
 
@@ -18,7 +18,7 @@
 
 ### Без установки
 
-1. [Скачайте проект ZIP-архивом](https://github.com/MaksimDenisovRussia/kremlin-lake-wallpapers/archive/refs/heads/main.zip) и распакуйте его в отдельную папку.
+1. [Скачайте проект ZIP-архивом](https://github.com/MaksimDenisov31/kremlin-lake-wallpapers/archive/refs/heads/main.zip) и распакуйте его в отдельную папку.
 2. Запустите **RussiaFlag.exe** или **Start.bat** — доступны оба способа. Сборка и интернет для запуска не нужны.
 3. Настройки находятся в меню значка флага РФ в трее. **Stop.bat** закрывает обои на всех экранах и останавливает звук.
 
