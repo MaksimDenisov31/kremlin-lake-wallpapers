@@ -1,6 +1,7 @@
 # Local tools, downloaded models and old project snapshots
 /.tools/
 /archive/
+/installer-output/
 
 # User preferences, shortcut paths and test preferences
 /settings.ini
