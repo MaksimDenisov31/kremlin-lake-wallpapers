@@ -2,6 +2,7 @@
 /.tools/
 /archive/
 /installer-output/
+/media/youtube/*.mp4
 
 # User preferences, shortcut paths and test preferences
 /settings.ini
@@ -21,6 +22,7 @@
 /desktop-diagnostics.txt
 *.tmp
 *.pdb
+__pycache__/
 
 # Rendered previews and diagnostic crops
 /preview*.png
