@@ -2,7 +2,8 @@
 /.tools/
 /archive/
 /installer-output/
-/media/youtube/*.mp4
+/media/youtube/
+/tools/video/
 
 # User preferences, shortcut paths and test preferences
 /settings.ini
